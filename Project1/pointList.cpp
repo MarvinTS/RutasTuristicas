@@ -31,7 +31,7 @@ bool PointList::isUniqueName(string name) {
     return true;
 }
 
-void PointList::displayPoint() {
+void PointList::displayPoints() {
     PointNode* current = head;
     while (current != nullptr) {
         cout << current->getName() << ", ";

@@ -1,6 +1,8 @@
 #pragma once
 #include "pointList.h"
 #include <iostream>
+#ifndef ROUTENODE_H
+#define ROUTENODE_H
 
 class RouteNode
 {
@@ -24,6 +26,5 @@ public:
     RouteNode* getNext();
     RouteNode* getPrev();
 
-
 };
-
+#endif // !ROUTENODE_H

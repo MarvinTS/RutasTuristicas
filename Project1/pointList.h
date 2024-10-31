@@ -15,7 +15,7 @@ public:
 
 	void insertPoint(string, int x, int y);
 	bool isUniqueName(string);
-	void displayPoint();
+	void displayPoints();
 	
 };
 #endif // !POINTLIST_H

@@ -142,12 +142,14 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pointList.cpp" />
     <ClCompile Include="pointNode.cpp" />
-    <ClCompile Include="routeNode.cpp" />
+    <ClCompile Include="RouteList.cpp" />
+    <ClCompile Include="RouteNode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pointList.h" />
     <ClInclude Include="pointNode.h" />
-    <ClInclude Include="routeNode.h" />
+    <ClInclude Include="RouteList.h" />
+    <ClInclude Include="RouteNode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
