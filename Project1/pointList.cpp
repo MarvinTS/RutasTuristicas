@@ -34,7 +34,7 @@ bool PointList::isUniqueName(string name) {
 void PointList::displayPoint() {
     PointNode* current = head;
     while (current != nullptr) {
-        std::cout << current->getName() << ", ";
+        cout << current->getName() << ", ";
         current = current->getNext();
     }
 }
