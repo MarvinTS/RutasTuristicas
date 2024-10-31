@@ -23,5 +23,10 @@ public:
     void setNext(PointNode* next);
     void setPrev(PointNode* prev);
 
+    string getName();
+    int getX();
+    int getY();
+    PointNode* getNext();
+    PointNode* getPrev();
 };
 #endif // !POINTNODE_H
