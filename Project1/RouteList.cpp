@@ -1,4 +1,6 @@
 #include "RouteList.h"
+
+
 RouteList::RouteList() {
 	this->head = nullptr;
 }
@@ -20,6 +22,7 @@ void RouteList::insertRout(string name) {
         newNode->setPrev(current);
     }
 }
+
 
 RouteNode* RouteList::searchRoute(string name) {
     RouteNode* current = head;
@@ -81,10 +84,20 @@ void RouteList::removeRoute(string name) {
     }
 }
 
-void RouteList::displayRoutes() {
+void RouteList::displayRoutes(sf::RenderWindow& ventana) {
+    sf::Font fuente;
+    if (!fuente.loadFromFile("C:\\Windows\\Fonts\\arial.ttf")) {
+        std::cerr << "Error al cargar la fuente." << std::endl;
+        return;
+    }
+
     RouteNode* current = head;
     while (current != nullptr) {
-        std::cout << current->getName() << ", ";
+        sf::Text textoRuta(current->getName(), fuente, 20);
+        textoRuta.setPosition(current->getPosX(), current->getPosY());
+        textoRuta.setFillColor(current->getColor());  // Usar el color asignado a la ruta
+        ventana.draw(textoRuta);
+
         current = current->getNext();
     }
 }
