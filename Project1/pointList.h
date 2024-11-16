@@ -14,7 +14,7 @@ public:
 	~PointList();
 
 	void insertPoint(string, int x, int y);
-	bool isUniqueName(string);
+	bool isUniqueRouteName(string);
 	void displayPoints();
 	
 };

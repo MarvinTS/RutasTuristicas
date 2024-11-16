@@ -8,7 +8,7 @@ RouteList::~RouteList() {
 
 }
 
-void RouteList::insertRout(string name) {
+void RouteList::insertRoute(string name) {
     RouteNode* newNode = new RouteNode(name);
     if (head == nullptr) {
         head = newNode;
@@ -35,10 +35,10 @@ RouteNode* RouteList::searchRoute(string name) {
     return nullptr;
 }
 
-bool RouteList::isUniqueName(string name) {
+bool RouteList::isUniqueRouteName(string name) {
     RouteNode* current = head;
     while (current != nullptr) {
-        if (!current->getPointList().isUniqueName(name)) {
+        if (current->getName() == name) {
             return false;
         }
         current = current->getNext();
@@ -55,7 +55,7 @@ void RouteList::insertPointToRoute(string name) {
         string name;
         cout << "Nombre del punto: ";
         cin >> name;
-        if (isUniqueName(name)) {
+        if (isUniqueRouteName(name)) {
             current->getPointList().insertPoint(name, 50, 100);
         }
     }

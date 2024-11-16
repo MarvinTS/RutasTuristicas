@@ -13,9 +13,9 @@ public:
 	RouteList();
 	~RouteList();
 
-	void insertRout(string);
+	void insertRoute(string);
 	RouteNode* searchRoute(string);
-	bool isUniqueName(string);
+	bool isUniqueRouteName(string);
 	void insertPointToRoute(string);
 	void removeRoute(string);
 	void displayRoutes(sf::RenderWindow& ventana);

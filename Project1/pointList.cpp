@@ -20,7 +20,7 @@ void PointList::insertPoint(string name, int x, int y) {
         newNode->setPrev(current);
     }
 }
-bool PointList::isUniqueName(string name) {
+bool PointList::isUniqueRouteName(string name) {
     PointNode* current = head;
     while (current != nullptr) {
         if (current->getName() == name) {
