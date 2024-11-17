@@ -43,6 +43,16 @@ std::vector<sf::Vector2f> generateCatmullRomCurve(const std::vector<sf::Vector2f
 }
 
 int main() {
+    std::cout << "Bienvenido al programa de Rutas Turisticas" << std::endl;
+    std::cout << "-------------------------------------------------" << std::endl;
+    std::cout << "Instrucciones para el uso:" << std::endl;
+    std::cout << "1. Presiona 'I' para ingresar al modo de insercion de rutas." << std::endl;
+    std::cout << "2. Selecciona un color en la paleta de colores con click izquierdo" << endl;
+    std::cout << "3. Haz clic derecho en el mapa para agregar puntos turisticos a la ruta activa." << std::endl;
+    std::cout << "4. Haz clic izquierdo en un punto existente para cambiar su color al seleccionado." << std::endl;
+    std::cout << "6. Cierra la ventana para salir del programa." << std::endl;
+    std::cout << "-------------------------------------------------" << std::endl;
+
     const size_t size = 1024;
     char buffer[size];
 
