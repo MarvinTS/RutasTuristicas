@@ -16,6 +16,8 @@ public:
 	void insertPoint(string, int x, int y);
 	bool isUniqueRouteName(string);
 	void displayPoints();
+	PointNode* getHead();
+
 	
 };
 #endif // !POINTLIST_H

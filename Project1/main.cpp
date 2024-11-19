@@ -1,5 +1,4 @@
 #include <SFML/Graphics.hpp>
-#include <vector>
 #include <iostream>
 #include <direct.h>
 #include <string>
@@ -9,8 +8,146 @@
 
 using namespace std;
 
-// Función de interpolación Catmull-Rom para suavizar las curvas
-sf::Vector2f catmullRom(const sf::Vector2f& p0, const sf::Vector2f& p1, const sf::Vector2f& p2, const sf::Vector2f& p3, float t) {
+// Estructura para representar un punto 2D
+struct Punto {
+    float x;
+    float y;
+    Punto* next;
+
+    Punto(float x = 0, float y = 0) : x(x), y(y), next(nullptr) {}
+};
+
+// Lista enlazada para puntos 2D
+class PuntoList {
+public:
+    Punto* head;
+
+    PuntoList() : head(nullptr) {}
+
+    ~PuntoList() {
+        clear();
+    }
+
+    void addPunto(float x, float y) {
+        Punto* newNode = new Punto(x, y);
+        if (!head) {
+            head = newNode;
+        }
+        else {
+            Punto* current = head;
+            while (current->next) {
+                current = current->next;
+            }
+            current->next = newNode;
+        }
+    }
+
+    void clear() {
+        Punto* current = head;
+        while (current) {
+            Punto* toDelete = current;
+            current = current->next;
+            delete toDelete;
+        }
+        head = nullptr;
+    }
+
+    bool isEmpty() const {
+        return head == nullptr;
+    }
+
+    size_t size() const {
+        size_t count = 0;
+        Punto* current = head;
+        while (current) {
+            ++count;
+            current = current->next;
+        }
+        return count;
+    }
+};
+
+// Estructura para representar un punto turístico
+struct PuntoTuristico {
+    sf::CircleShape punto;
+    sf::Text nombre;
+    PuntoTuristico* next;
+
+    PuntoTuristico(sf::CircleShape punto, sf::Text nombre) : punto(punto), nombre(nombre), next(nullptr) {}
+};
+
+// Estructura para representar una ruta con su nombre y lista de puntos turísticos
+struct Ruta {
+    string nombre;
+    PuntoList puntos;
+    PuntoTuristico* headPuntoTuristico;
+    sf::Color colorRuta;
+    Ruta* next;
+
+    Ruta(string nombre, sf::Color color) : nombre(nombre), headPuntoTuristico(nullptr), colorRuta(color), next(nullptr) {}
+
+    // Función para verificar si un nombre de punto ya existe en la lista de puntos turísticos
+    bool isPuntoNombreUnico(const string& nombre) const {
+        PuntoTuristico* current = headPuntoTuristico;
+        while (current) {
+            if (current->nombre.getString() == nombre) {
+                return false;  // El nombre ya existe
+            }
+            current = current->next;
+        }
+        return true;  // El nombre es único
+    }
+};
+
+// Lista enlazada para gestionar múltiples rutas
+class RutaList {
+public:
+    Ruta* head;
+
+    RutaList() : head(nullptr) {}
+
+    ~RutaList() {
+        clear();
+    }
+
+    void addRuta(string nombre, sf::Color color) {
+        Ruta* newRuta = new Ruta(nombre, color);
+        if (!head) {
+            head = newRuta;
+        }
+        else {
+            Ruta* current = head;
+            while (current->next) {
+                current = current->next;
+            }
+            current->next = newRuta;
+        }
+    }
+
+    Ruta* findRuta(string nombre) {
+        Ruta* current = head;
+        while (current) {
+            if (current->nombre == nombre) {
+                return current;
+            }
+            current = current->next;
+        }
+        return nullptr;
+    }
+
+    void clear() {
+        Ruta* current = head;
+        while (current) {
+            Ruta* toDelete = current;
+            current = current->next;
+            delete toDelete;
+        }
+        head = nullptr;
+    }
+};
+
+// Función de interpolación Catmull-Rom
+Punto catmullRom(Punto* p0, Punto* p1, Punto* p2, Punto* p3, float t) {
     float t2 = t * t;
     float t3 = t2 * t;
 
@@ -19,27 +156,69 @@ sf::Vector2f catmullRom(const sf::Vector2f& p0, const sf::Vector2f& p1, const sf
     float b2 = -3.0f * t3 + 4.0f * t2 + t;
     float b3 = t3 - t2;
 
-    return 0.5f * (p0 * b0 + p1 * b1 + p2 * b2 + p3 * b3);
+    float x = 0.5f * (p0->x * b0 + p1->x * b1 + p2->x * b2 + p3->x * b3);
+    float y = 0.5f * (p0->y * b0 + p1->y * b1 + p2->y * b2 + p3->y * b3);
+
+    return Punto(x, y);
 }
 
-std::vector<sf::Vector2f> generateCatmullRomCurve(const std::vector<sf::Vector2f>& points) {
-    std::vector<sf::Vector2f> curvePoints;
+// Generar una curva Catmull-Rom usando listas enlazadas
+PuntoList generateCatmullRomCurve(PuntoList& points) {
+    PuntoList curvePoints;
     if (points.size() < 2) return curvePoints;
 
-    // Extender los extremos para incluir las curvas en los primeros y últimos segmentos
-    sf::Vector2f firstPoint = points.front();
-    sf::Vector2f lastPoint = points.back();
-    std::vector<sf::Vector2f> extendedPoints = { firstPoint, firstPoint };
-    extendedPoints.insert(extendedPoints.end(), points.begin(), points.end());
-    extendedPoints.push_back(lastPoint);
-    extendedPoints.push_back(lastPoint);
-
-    for (size_t i = 1; i < extendedPoints.size() - 2; ++i) {
-        for (float t = 0; t <= 1; t += 0.05f) {
-            curvePoints.push_back(catmullRom(extendedPoints[i - 1], extendedPoints[i], extendedPoints[i + 1], extendedPoints[i + 2], t));
-        }
+    Punto* first = points.head;
+    Punto* last = first;
+    while (last->next) {
+        last = last->next;
     }
+
+    Punto* extendedHead = new Punto(first->x, first->y);
+    extendedHead->next = new Punto(first->x, first->y);
+    Punto* current = points.head;
+    Punto* extendedCurrent = extendedHead->next;
+    while (current) {
+        extendedCurrent->next = new Punto(current->x, current->y);
+        extendedCurrent = extendedCurrent->next;
+        current = current->next;
+    }
+    extendedCurrent->next = new Punto(last->x, last->y);
+    extendedCurrent = extendedCurrent->next;
+    extendedCurrent->next = new Punto(last->x, last->y);
+
+    Punto* eCurrent = extendedHead;
+    while (eCurrent->next && eCurrent->next->next && eCurrent->next->next->next) {
+        for (float t = 0; t <= 1; t += 0.05f) {
+            Punto interpolatedPoint = catmullRom(eCurrent, eCurrent->next, eCurrent->next->next, eCurrent->next->next->next, t);
+            curvePoints.addPunto(interpolatedPoint.x, interpolatedPoint.y);
+        }
+        eCurrent = eCurrent->next;
+    }
+
+    while (extendedHead) {
+        Punto* toDelete = extendedHead;
+        extendedHead = extendedHead->next;
+        delete toDelete;
+    }
+
     return curvePoints;
+}
+
+// Dibujar líneas a partir de una lista enlazada de puntos
+void drawCurve(sf::RenderWindow& window, PuntoList& curve) {
+    Punto* current = curve.head;
+    while (current && current->next) {
+        sf::RectangleShape line(sf::Vector2f(
+            sqrt(pow(current->next->x - current->x, 2) + pow(current->next->y - current->y, 2)),
+            1.0f
+        ));
+        line.setFillColor(sf::Color::Black);  // Asegurar que las aristas sean negras
+        line.setPosition(current->x, current->y);
+        float angle = atan2(current->next->y - current->y, current->next->x - current->x) * 180 / 3.14159265;
+        line.setRotation(angle);
+        window.draw(line);
+        current = current->next;
+    }
 }
 
 int main() {
@@ -71,19 +250,13 @@ int main() {
         return -1;
     }
 
-    struct PuntoTuristico {
-        sf::CircleShape punto;
-        sf::Text nombre;
-    };
-
-    std::vector<PuntoTuristico> puntosTuristicos;
     sf::Color colorActualPunto = sf::Color::Red;
-    std::vector<sf::Vector2f> puntosRuta;
-
-    std::vector<sf::Color> coloresPaleta = { sf::Color::Red, sf::Color::Green, sf::Color::Blue, sf::Color::Yellow, sf::Color::Magenta };
+    RutaList listaRutas;
+    Ruta* rutaSeleccionada = nullptr;
+    sf::Color coloresPaleta[] = { sf::Color::Red, sf::Color::Green, sf::Color::Blue, sf::Color::Yellow, sf::Color::Magenta };
     float xPaleta = 50.0f, yPaleta = 500.0f;
+    std::string nombrePuntoActual;
 
-    std::string nombreRuta;
     while (ventana.isOpen()) {
         sf::Event evento;
 
@@ -92,28 +265,72 @@ int main() {
                 ventana.close();
 
             if (evento.type == sf::Event::KeyPressed && evento.key.code == sf::Keyboard::I) {
-              
-                std::cout << "Ingrese el nombre de la ruta: ";
-                std::cin >> nombreRuta;
+                std::cout << "Ingrese el nombre del punto: ";
+                std::cin >> nombrePuntoActual;
 
-                // Verificar si el nombre de la ruta es único
-                if (rutas.isUniqueRouteName(nombreRuta)) {
-                    rutas.insertRoute(nombreRuta);
-                    rutaActual = rutas.searchRoute(nombreRuta);
+                if (rutaSeleccionada && !rutaSeleccionada->isPuntoNombreUnico(nombrePuntoActual)) {
+                    std::cout << "El nombre del punto ya existe. Intente otro nombre." << std::endl;
+                    nombrePuntoActual.clear();
                 }
                 else {
-                    nombreRuta = "";
-                    std::cout << "El nombre de la ruta ya existe. Intente otro nombre." << std::endl;
-                    continue;
+                    std::cout << "Nombre del punto almacenado: " << nombrePuntoActual << std::endl;
                 }
             }
 
-            if (evento.type == sf::Event::MouseButtonPressed && evento.mouseButton.button == sf::Mouse::Left && rutaActual != nullptr && nombreRuta!= "") {
+            if (evento.type == sf::Event::MouseButtonPressed && evento.mouseButton.button == sf::Mouse::Right && rutaSeleccionada) {
+                float posX = static_cast<float>(evento.mouseButton.x);
+                float posY = static_cast<float>(evento.mouseButton.y);
+
+                if (!nombrePuntoActual.empty()) {
+                    sf::CircleShape puntoTuristico(5.0f);
+                    puntoTuristico.setFillColor(colorActualPunto);
+                    puntoTuristico.setPosition(posX, posY);
+
+                    sf::Text textoRuta(nombrePuntoActual, fuente, 12);
+                    textoRuta.setFillColor(sf::Color::Black);
+                    textoRuta.setPosition(posX + 10, posY + 10);
+
+                    PuntoTuristico* newPunto = new PuntoTuristico(puntoTuristico, textoRuta);
+                    if (!rutaSeleccionada->headPuntoTuristico) {
+                        rutaSeleccionada->headPuntoTuristico = newPunto;
+                    }
+                    else {
+                        PuntoTuristico* current = rutaSeleccionada->headPuntoTuristico;
+                        while (current->next) {
+                            current = current->next;
+                        }
+                        current->next = newPunto;
+                    }
+
+                    rutaSeleccionada->puntos.addPunto(posX + 5.0f, posY + 5.0f);
+                    nombrePuntoActual.clear();  // Limpiar el nombre después de usarlo
+                    std::cout << "Punto turístico insertado en la ruta \"" << rutaSeleccionada->nombre << "\" en (" << posX << ", " << posY << ") con el nombre \"" << textoRuta.getString().toAnsiString() << "\"." << std::endl;
+                }
+                else {
+                    std::cout << "No hay un nombre de punto almacenado o el nombre ya se ha usado." << std::endl;
+                }
+            }
+
+            if (evento.type == sf::Event::KeyPressed && evento.key.code == sf::Keyboard::A) {
+                std::string nombreRuta;
+                std::cout << "Ingrese el nombre de la nueva ruta: ";
+                std::cin >> nombreRuta;
+
+                if (!listaRutas.findRuta(nombreRuta)) {
+                    listaRutas.addRuta(nombreRuta, colorActualPunto);
+                    rutaSeleccionada = listaRutas.findRuta(nombreRuta);
+                    std::cout << "Ruta \"" << nombreRuta << "\" creada y seleccionada." << std::endl;
+                }
+                else {
+                    std::cout << "El nombre de la ruta ya existe. Intente otro nombre." << std::endl;
+                }
+            }
+
+            if (evento.type == sf::Event::MouseButtonPressed && evento.mouseButton.button == sf::Mouse::Left && rutaSeleccionada) {
                 float mouseX = static_cast<float>(evento.mouseButton.x);
                 float mouseY = static_cast<float>(evento.mouseButton.y);
 
-                // Verificar si se seleccionó un color de la paleta
-                for (size_t i = 0; i < coloresPaleta.size(); ++i) {
+                for (int i = 0; i < 5; ++i) {
                     float xColor = xPaleta + i * 40.0f;
                     if (mouseX >= xColor && mouseX <= xColor + 30 && mouseY >= yPaleta && mouseY <= yPaleta + 30) {
                         colorActualPunto = coloresPaleta[i];
@@ -121,73 +338,34 @@ int main() {
                         break;
                     }
                 }
-
-                // Cambiar color de un punto existente al hacer clic en él
-                for (auto& punto : puntosTuristicos) {
-                    float puntoX = punto.punto.getPosition().x;
-                    float puntoY = punto.punto.getPosition().y;
-                    if (mouseX >= puntoX && mouseX <= puntoX + 10 && mouseY >= puntoY && mouseY <= puntoY + 10) {
-                        punto.punto.setFillColor(colorActualPunto);
-                        std::cout << "Color del punto turístico cambiado." << std::endl;
-                    }
-                }     
-                
-            }
-
-            if (evento.type == sf::Event::MouseButtonPressed && evento.mouseButton.button == sf::Mouse::Right && rutaActual != nullptr && nombreRuta != "") {
-                float posX = static_cast<float>(evento.mouseButton.x);
-                float posY = static_cast<float>(evento.mouseButton.y);
-
-                // Crear un círculo para el nuevo punto turístico
-                sf::CircleShape puntoTuristico(5.0f);
-                puntoTuristico.setFillColor(colorActualPunto);
-                puntoTuristico.setPosition(posX, posY);
-
-                // Crear un texto para el nombre de la ruta en el mismo punto
-                sf::Text textoRuta(rutaActual->getName(), fuente, 12);
-                textoRuta.setFillColor(sf::Color::Black);
-                textoRuta.setPosition(posX + 10, posY + 10);
-
-                puntosTuristicos.push_back({ puntoTuristico, textoRuta });
-                puntosRuta.push_back(sf::Vector2f(posX + 5.0f, posY + 5.0f));
-                nombreRuta = "";
-                std::cout << "Punto turístico insertado en (" << posX << ", " << posY << ") con color seleccionado." << std::endl;
             }
         }
-        
+
         ventana.clear(sf::Color::White);
         ventana.draw(spriteMapa);
 
-        if (rutaActual != nullptr) {
-            sf::Text textoRutaPrincipal(rutaActual->getName(), fuente, 20);
-            textoRutaPrincipal.setPosition(rutaActual->getPosX(), rutaActual->getPosY());
-            textoRutaPrincipal.setFillColor(rutaActual->getColor());
-            ventana.draw(textoRutaPrincipal);
-
-            // Dibujar los puntos turísticos y sus nombres
-            for (const auto& punto : puntosTuristicos) {
-                ventana.draw(punto.punto);
-                ventana.draw(punto.nombre);
+        Ruta* currentRuta = listaRutas.head;
+        while (currentRuta) {
+            if (currentRuta->puntos.size() >= 2) {
+                PuntoList curva = generateCatmullRomCurve(currentRuta->puntos);
+                drawCurve(ventana, curva);
             }
 
-            // Dibujar las curvas de la ruta
-            if (puntosRuta.size() >= 2) {
-                std::vector<sf::Vector2f> curva = generateCatmullRomCurve(puntosRuta);
-                sf::VertexArray curvaRuta(sf::LineStrip, curva.size());
-                for (size_t i = 0; i < curva.size(); ++i) {
-                    curvaRuta[i].position = curva[i];
-                    curvaRuta[i].color = colorActualPunto;
-                }
-                ventana.draw(curvaRuta);
+            PuntoTuristico* currentPunto = currentRuta->headPuntoTuristico;
+            while (currentPunto) {
+                ventana.draw(currentPunto->punto);
+                ventana.draw(currentPunto->nombre);
+                currentPunto = currentPunto->next;
             }
 
-            // Dibujar la paleta de colores para los puntos turísticos
-            for (size_t i = 0; i < coloresPaleta.size(); ++i) {
-                sf::RectangleShape cuadro(sf::Vector2f(30.0f, 30.0f));
-                cuadro.setFillColor(coloresPaleta[i]);
-                cuadro.setPosition(xPaleta + i * 40.0f, yPaleta);
-                ventana.draw(cuadro);
-            }
+            currentRuta = currentRuta->next;
+        }
+
+        for (int i = 0; i < 5; ++i) {
+            sf::RectangleShape cuadro(sf::Vector2f(30.0f, 30.0f));
+            cuadro.setFillColor(coloresPaleta[i]);
+            cuadro.setPosition(xPaleta + i * 40.0f, yPaleta);
+            ventana.draw(cuadro);
         }
 
         rutas.displayRoutes(ventana);
