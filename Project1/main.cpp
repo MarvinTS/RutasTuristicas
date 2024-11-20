@@ -2,6 +2,8 @@
 #include <iostream>
 #include <direct.h>
 #include <string>
+#include <filesystem>
+#include <fstream>
 #include "RouteList.h"
 #include "pointList.h"
 #include "pointNode.h"
@@ -130,7 +132,7 @@ struct Ruta {
             }
         }
 
-        // Limpiar la lista de puntos y regenerar la curva
+        // Limpiar y regenerar la lista de puntos
         puntos.clear();
         PuntoTuristico* currentPunto = headPuntoTuristico;
         while (currentPunto) {
@@ -138,6 +140,7 @@ struct Ruta {
             currentPunto = currentPunto->next;
         }
     }
+
 
 
 };
@@ -230,31 +233,31 @@ public:
         }
     }
 
-    void loadRoutesFromFiles() {
-        listaRutas.clear();
-        _mkdir("rutas_guardadas");
-        for (int i = 1; ; ++i) {
-            std::ifstream file("rutas_guardadas/ruta_" + std::to_string(i) + ".txt");
-            if (!file.is_open()) break;
+    //void loadRoutesFromFiles() {
+    //    RutaList.clear();
+    //    _mkdir("rutas_guardadas");
+    //    for (int i = 1; ; ++i) {
+    //        std::ifstream file("rutas_guardadas/ruta_" + std::to_string(i) + ".txt");
+    //        if (!file.is_open()) break;
 
-            std::string nombreRuta;
-            getline(file, nombreRuta);
-            listaRutas.addRuta(nombreRuta, sf::Color::Red); // Color predeterminado para cargar
-            Ruta* newRuta = listaRutas.findRuta(nombreRuta);
+    //        std::string nombreRuta;
+    //        getline(file, nombreRuta);
+    //        RutaList.addRuta(nombreRuta, sf::Color::Red); // Color predeterminado para cargar
+    //        Ruta* newRuta =  RutaList.findRuta(nombreRuta);
 
-            float x, y;
-            while (file >> x >> y) {
-                newRuta->puntos.addPunto(x, y);
-                sf::CircleShape punto(5.0f);
-                punto.setPosition(x, y);
-                punto.setFillColor(sf::Color::Red);
-                sf::Text texto("", fuente, 12);
-                texto.setPosition(x + 10, y + 10);
-                newRuta->headPuntoTuristico = new PuntoTuristico(punto, texto);  // Simplificación para cargar puntos
-            }
-            file.close();
-        }
-    }
+    //        float x, y;
+    //        while (file >> x >> y) {
+    //            newRuta->puntos.addPunto(x, y);
+    //            sf::CircleShape punto(5.0f);
+    //            punto.setPosition(x, y);
+    //            punto.setFillColor(sf::Color::Red);
+    //            sf::Text texto("", fuente, 12);
+    //            texto.setPosition(x + 10, y + 10);
+    //            newRuta->headPuntoTuristico = new PuntoTuristico(punto, texto);  // Simplificación para cargar puntos
+    //        }
+    //        file.close();
+    //    }
+    //}
 
 
 };
@@ -335,6 +338,19 @@ void drawCurve(sf::RenderWindow& window, PuntoList& curve) {
 }
 
 int main() {
+    std::cout << "Bienvenido al programa de Rutas Turisticas" << std::endl;
+    std::cout << "-------------------------------------------------" << std::endl;
+    std::cout << "Instrucciones para el uso:" << std::endl;
+    std::cout << "1. Presiona 'A' para ingresar al modo de insercion de rutas." << std::endl;
+    std::cout << "1. Presiona 'I' para ingresar al modo de insercion de puntos." << std::endl;
+    std::cout << "2. Selecciona un color en la paleta de colores con click izquierdo" << endl;
+    std::cout << "3. Haz clic derecho en el mapa para agregar puntos turisticos a la ruta activa." << std::endl;
+    std::cout << "4. Haz clic izquierdo en un punto existente para cambiar su color al seleccionado." << std::endl;
+    std::cout << "1. Presiona 'M' para ingresar al modo de extraccion de rutas." << std::endl;
+    std::cout << "1. Presiona clic izquierdo para seleccionar la ruta." << std::endl;
+    std::cout << "6. Cierra la ventana para salir del programa." << std::endl;
+    std::cout << "-------------------------------------------------" << std::endl;
+
     const size_t size = 1024;
     char buffer[size];
 
@@ -345,7 +361,6 @@ int main() {
     std::string rutaActual_cwd(buffer);
     std::string subruta = "\\resources\\mapa_nuevo.png";
     std::string rutaCompleta = rutaActual_cwd + subruta;
-    std::cout << "Ruta completa: " << rutaCompleta << std::endl;
 
     sf::RenderWindow ventana(sf::VideoMode(1000, 600), "Mapa Turístico");
     sf::Texture texturaMapa;
@@ -359,6 +374,8 @@ int main() {
     RouteList rutas;
     bool modoInsercion = false;
     RouteNode* rutaActual = nullptr;
+    PuntoTuristico* puntoSeleccionado = nullptr;
+
 
     // rutas.loadRoutesFromFiles(); desdocumentar este metodo cuando se cambien los paths de los archivos
 
@@ -371,7 +388,7 @@ int main() {
     sf::Color colorActualPunto = sf::Color::Red;
     RutaList listaRutas;
     Ruta* rutaSeleccionada = nullptr;
-    sf::Color coloresPaleta[] = { sf::Color::Red, sf::Color::Green, sf::Color::Blue, sf::Color::Yellow, sf::Color::Magenta };
+    sf::Color coloresPaleta[] = { sf::Color::Red, sf::Color::Black, sf::Color::Blue, sf::Color::Magenta };
     float xPaleta = 50.0f, yPaleta = 500.0f;
     std::string nombrePuntoActual;
 
@@ -405,19 +422,22 @@ int main() {
                 float mouseX = static_cast<float>(evento.mouseButton.x);
                 float mouseY = static_cast<float>(evento.mouseButton.y);
 
-                // Verificar si se está seleccionando un punto
                 Ruta* currentRuta = listaRutas.head;
-                PuntoTuristico* puntoSeleccionado = nullptr;
                 while (currentRuta) {
-                    if (currentRuta->selectPunto(mouseX, mouseY, puntoSeleccionado)) {
-                        rutaSeleccionada = currentRuta;  // Seleccionar la ruta correspondiente
-                        currentRuta->colorRuta = sf::Color::Cyan;  // Resaltar la ruta seleccionada
-                        std::cout << "Punto seleccionado en la ruta \"" << rutaSeleccionada->nombre << "\"." << std::endl;
+                    PuntoTuristico* posiblePunto = nullptr;
+
+                    if (currentRuta->selectPunto(mouseX, mouseY, posiblePunto)) {
+                        rutaSeleccionada = currentRuta;  // Ruta activa
+                        puntoSeleccionado = posiblePunto; // Punto activo
+                        std::cout << "Punto turístico seleccionado en la ruta \"" << rutaSeleccionada->nombre
+                            << "\" en posición (" << puntoSeleccionado->punto.getPosition().x
+                            << ", " << puntoSeleccionado->punto.getPosition().y << ")." << std::endl;
                         break;
                     }
                     currentRuta = currentRuta->next;
                 }
             }
+
 
 
 
@@ -482,41 +502,87 @@ int main() {
                         break;
                     }
                 }
+            } 
+            if (evento.type == sf::Event::KeyPressed && evento.key.code == sf::Keyboard::E) {
+                if (rutaSeleccionada) {
+                    listaRutas.removeRuta(rutaSeleccionada);
+                    std::cout << "La ruta \"" << rutaSeleccionada->nombre << "\" ha sido eliminada." << std::endl;
+                    rutaSeleccionada = nullptr;
+                }
+                else {
+                    std::cout << "No hay ninguna ruta seleccionada para eliminar." << std::endl;
+                }
             }
+                if (evento.type == sf::Event::KeyPressed && evento.key.code == sf::Keyboard::R) {
+                    if (puntoSeleccionado && rutaSeleccionada) {
+                        rutaSeleccionada->removePunto(puntoSeleccionado);
+                        std::cout << "Punto turístico eliminado de la ruta \"" << rutaSeleccionada->nombre << "\"." << std::endl;
+                        puntoSeleccionado = nullptr;  // Limpiar selección tras la eliminación
+                    }
+                    else {
+                        std::cout << "No hay un punto seleccionado para eliminar." << std::endl;
+                    }
+                }
+            //if (modoSeleccion && evento.type == sf::Event::MouseButtonPressed && evento.mouseButton.button == sf::Mouse::Left) {
+            //    float mouseX = static_cast<float>(evento.mouseButton.x);
+            //    float mouseY = static_cast<float>(evento.mouseButton.y);
+
+            //    Ruta* currentRuta = listaRutas.head;
+            //    while (currentRuta) {
+            //        if (currentRuta->selectPunto(mouseX, mouseY, puntoSeleccionado)) {
+            //            rutaSeleccionada = currentRuta;  // Seleccionar la ruta correspondiente
+            //            currentRuta->colorRuta = sf::Color::Cyan;  // Resaltar la ruta seleccionada
+            //            std::cout << "Punto seleccionado en la ruta \"" << rutaSeleccionada->nombre << "\"." << std::endl;
+            //            break;
+            //        }
+            //        currentRuta = currentRuta->next;
+            //    }
+            //}
+            //if (modoSeleccion && evento.type == sf::Event::KeyPressed && evento.key.code == sf::Keyboard::Delete) {
+            //    if (puntoSeleccionado && rutaSeleccionada) {
+            //        rutaSeleccionada->removePunto(puntoSeleccionado);
+            //        puntoSeleccionado = nullptr;  // Desmarcar el punto después de eliminarlo
+            //        std::cout << "Punto eliminado de la ruta \"" << rutaSeleccionada->nombre << "\"." << std::endl;
+            //    }
+            //    else {
+            //        std::cout << "No hay un punto seleccionado para eliminar." << std::endl;
+            //    }
+            //
+          /*  }*/
+
+
+            ventana.clear(sf::Color::White);
+            ventana.draw(spriteMapa);
+
+            Ruta* currentRuta = listaRutas.head;
+            while (currentRuta) {
+                if (currentRuta->puntos.size() >= 2) {
+                    PuntoList curva = generateCatmullRomCurve(currentRuta->puntos);
+                    drawCurve(ventana, curva);
+                }
+
+                PuntoTuristico* currentPunto = currentRuta->headPuntoTuristico;
+                while (currentPunto) {
+                    ventana.draw(currentPunto->punto);
+                    ventana.draw(currentPunto->nombre);
+                    currentPunto = currentPunto->next;
+                }
+
+                currentRuta = currentRuta->next;
+            }
+
+            for (int i = 0; i < 5; ++i) {
+                sf::RectangleShape cuadro(sf::Vector2f(30.0f, 30.0f));
+                cuadro.setFillColor(coloresPaleta[i]);
+                cuadro.setPosition(xPaleta + i * 40.0f, yPaleta);
+                ventana.draw(cuadro);
+            }
+
+            rutas.displayRoutes(ventana);
+            ventana.display();
         }
 
-        ventana.clear(sf::Color::White);
-        ventana.draw(spriteMapa);
-
-        Ruta* currentRuta = listaRutas.head;
-        while (currentRuta) {
-            if (currentRuta->puntos.size() >= 2) {
-                PuntoList curva = generateCatmullRomCurve(currentRuta->puntos);
-                drawCurve(ventana, curva);
-            }
-
-            PuntoTuristico* currentPunto = currentRuta->headPuntoTuristico;
-            while (currentPunto) {
-                ventana.draw(currentPunto->punto);
-                ventana.draw(currentPunto->nombre);
-                currentPunto = currentPunto->next;
-            }
-
-            currentRuta = currentRuta->next;
-        }
-
-        for (int i = 0; i < 5; ++i) {
-            sf::RectangleShape cuadro(sf::Vector2f(30.0f, 30.0f));
-            cuadro.setFillColor(coloresPaleta[i]);
-            cuadro.setPosition(xPaleta + i * 40.0f, yPaleta);
-            ventana.draw(cuadro);
-        }
-
-        rutas.displayRoutes(ventana);
-        ventana.display();
+        // rutas.saveRoutesToFiles(); desdocumentar cuando se cambien los paths de los archivos
     }
-
-    // rutas.saveRoutesToFiles(); desdocumentar cuando se cambien los paths de los archivos
-
-    return 0;
-}
+        return 0;
+    }
